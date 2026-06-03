@@ -1,0 +1,112 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  border-right: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.sidebar h1 {
+  font-size: 18px;
+  margin: 0 0 2px;
+}
+
+.tag {
+  font-size: 11px;
+  opacity: 0.6;
+  margin: 0 0 16px;
+}
+
+.search {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.search:focus {
+  border-color: #3b82f6;
+}
+
+.results {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.results li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.results li.empty {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.results mark {
+  background: #ffd76e;
+  color: #000;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.error {
+  color: #e5484d;
+  font-size: 12px;
+}
+
+.hint {
+  font-size: 11px;
+  opacity: 0.55;
+  margin-top: 16px;
+  line-height: 1.5;
+}
+
+.hint code {
+  font-size: 11px;
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.editor {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px;
+}
