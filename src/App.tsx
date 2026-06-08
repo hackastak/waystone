@@ -8,6 +8,12 @@ import "@milkdown/crepe/theme/nord.css";
 import "./App.css";
 
 type NoteHit = { id: string; title: string; snippet: string; rank: number };
+type IndexStats = {
+  notes: number;
+  links: number;
+  tags: number;
+  dangling_links: number;
+};
 
 const SEED_DOC = `# Hello from Milkdown
 
@@ -45,8 +51,11 @@ function App() {
   const [vault, setVault] = useState<string | null>(null);
   const [fsResult, setFsResult] = useState<string | null>(null);
   const [lastChange, setLastChange] = useState<string | null>(null);
+  const [stats, setStats] = useState<IndexStats | null>(null);
 
-  // When a vault is chosen, ask Rust to watch it and listen for change events.
+  // When a vault is chosen: index it (Rust scans the markdown into FTS5), then
+  // watch it for external changes. open_vault is read-only — it never writes to
+  // your files — so it's safe to point at any folder.
   useEffect(() => {
     if (!vault) return;
     let unlisten: (() => void) | undefined;
@@ -54,6 +63,14 @@ function App() {
       unlisten = await listen<string[]>("vault-change", (e) => {
         setLastChange(e.payload.join("\n"));
       });
+      try {
+        const s = await invoke<IndexStats>("open_vault", { path: vault });
+        setStats(s);
+        setError(null);
+      } catch (e) {
+        setError(String(e));
+        setStats(null);
+      }
       await invoke("watch_vault", { path: vault });
     })();
     return () => unlisten?.();
@@ -103,6 +120,12 @@ function App() {
           {vault ? "Change vault folder" : "Choose vault folder…"}
         </button>
         {vault && <p className="vault-path">{vault}</p>}
+        {stats && (
+          <p className="hint">
+            Indexed <b>{stats.notes}</b> notes · {stats.links} links (
+            {stats.dangling_links} dangling) · {stats.tags} tags
+          </p>
+        )}
         {vault && (
           <button className="vault-btn" onClick={testFileIO}>
             Write &amp; read a test note
@@ -121,7 +144,7 @@ function App() {
 
         <input
           className="search"
-          placeholder="Search notes (try: rust, para, markdown)…"
+          placeholder={vault ? "Search your vault…" : "Choose a vault first…"}
           value={query}
           onChange={(e) => onSearch(e.target.value)}
         />
@@ -149,9 +172,9 @@ function App() {
         </ul>
 
         <p className="hint">
-          Search executes in <b>Rust</b> over an in-memory FTS5 table via{" "}
-          <code>invoke("search_notes")</code>. The editor on the right is JS
-          (Milkdown). That's the renderer ↔ Rust split.
+          Search executes in <b>Rust</b> over the on-disk FTS5 index built from
+          your markdown via <code>invoke("search_notes")</code>. The editor on
+          the right is JS (Milkdown). That's the renderer ↔ Rust split.
         </p>
       </aside>
 
