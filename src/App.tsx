@@ -14,34 +14,97 @@ type IndexStats = {
   tags: number;
   dangling_links: number;
 };
+// Mirrors the Rust `NoteContents`: the markdown body the editor edits, plus the
+// path + verbatim frontmatter we hand back to `save_note` untouched.
+type NoteContents = {
+  path: string;
+  title: string;
+  frontmatter: string;
+  body: string;
+};
+type SaveState = "idle" | "saving" | "saved" | "error";
 
-const SEED_DOC = `# Hello from Milkdown
+const SEED_DOC = `# Welcome to FlintBrain
 
-This is a **WYSIWYG markdown** editor running inside the Tauri webview.
+Choose a vault folder, search on the left, then **click a result** to open it
+here and start editing. Edits save back to the \`.md\` file automatically.
 
-- Type markdown, watch it render
-- [ ] task lists work (GFM)
-- [x] this is the renderer half (JS)
-
-> Search (left) runs in **Rust** over SQLite FTS5. The editor (here) is JS.
+> Search runs in **Rust** over SQLite FTS5. The editor is JS (Milkdown).
 > That split is the whole point of the Tauri architecture.
 `;
 
+const WRITE_DEBOUNCE_MS = 800;
+
 // Milkdown is a web editor (ProseMirror) — it lives in the renderer, not Rust.
-function Editor() {
+// When `note` is set we load its body and write edits back (debounced); with no
+// note we show a read-only welcome doc. The parent remounts this via `key` on
+// note change, so each note gets a fresh editor instance with its own content.
+function Editor({ note }: { note: NoteContents | null }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
 
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const crepe = new Crepe({ root, defaultValue: SEED_DOC });
-    crepe.create();
+
+    const crepe = new Crepe({ root, defaultValue: note ? note.body : SEED_DOC });
+
+    // `ready` gates out the markdownUpdated events Crepe fires while it parses
+    // and normalizes the initial doc — only genuine user edits afterward should
+    // trigger a write (otherwise we'd save-back-and-churn the file on load).
+    let ready = false;
+    let destroyed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    if (note) {
+      crepe.on((listener) => {
+        listener.markdownUpdated((_ctx, markdown) => {
+          if (!ready) return;
+          if (timer) clearTimeout(timer);
+          setSaveState("saving");
+          timer = setTimeout(async () => {
+            try {
+              // Body changes here; the frontmatter rides along unchanged.
+              await invoke("save_note", {
+                path: note.path,
+                frontmatter: note.frontmatter,
+                body: markdown,
+              });
+              if (!destroyed) setSaveState("saved");
+            } catch {
+              if (!destroyed) setSaveState("error");
+            }
+          }, WRITE_DEBOUNCE_MS);
+        });
+      });
+    }
+
+    crepe.create().then(() => {
+      if (!destroyed) ready = true;
+    });
+
     return () => {
+      destroyed = true;
+      if (timer) clearTimeout(timer);
       crepe.destroy();
     };
-  }, []);
+  }, [note]);
 
-  return <div className="editor" ref={ref} />;
+  return (
+    <div className="editor-pane">
+      {note && (
+        <header className="editor-bar">
+          <span className="editor-title">{note.title}</span>
+          <span className={`save-state save-state--${saveState}`}>
+            {saveState === "saving" && "Saving…"}
+            {saveState === "saved" && "Saved"}
+            {saveState === "error" && "Save failed"}
+          </span>
+        </header>
+      )}
+      <div className="editor" ref={ref} />
+    </div>
+  );
 }
 
 function App() {
@@ -52,12 +115,15 @@ function App() {
   const [fsResult, setFsResult] = useState<string | null>(null);
   const [lastChange, setLastChange] = useState<string | null>(null);
   const [stats, setStats] = useState<IndexStats | null>(null);
+  const [note, setNote] = useState<NoteContents | null>(null);
 
   // When a vault is chosen: index it (Rust scans the markdown into FTS5), then
   // watch it for external changes. open_vault is read-only — it never writes to
   // your files — so it's safe to point at any folder.
   useEffect(() => {
     if (!vault) return;
+    // New vault → no note open yet; clear any note from the previous vault.
+    setNote(null);
     let unlisten: (() => void) | undefined;
     (async () => {
       unlisten = await listen<string[]>("vault-change", (e) => {
@@ -94,6 +160,18 @@ function App() {
       setFsResult(`Wrote + read ${path}:\n\n${readBack}`);
     } catch (e) {
       setFsResult(`Error: ${String(e)}`);
+    }
+  }
+
+  // Click a search hit → load its file into the editor. Rust looks up the
+  // note's path by id, reads it, and splits off the frontmatter.
+  async function openNote(id: string) {
+    try {
+      const contents = await invoke<NoteContents>("open_note", { id });
+      setNote(contents);
+      setError(null);
+    } catch (e) {
+      setError(String(e));
     }
   }
 
@@ -153,7 +231,11 @@ function App() {
 
         <ul className="results">
           {hits.map((h) => (
-            <li key={h.id}>
+            <li
+              key={h.id}
+              className={`hit${note?.title === h.title ? " hit--open" : ""}`}
+              onClick={() => openNote(h.id)}
+            >
               <strong>{h.title}</strong>
               <span
                 // FTS5 wraps matched terms in [ ] (see snippet() in lib.rs);
@@ -179,7 +261,7 @@ function App() {
       </aside>
 
       <main className="main">
-        <Editor />
+        <Editor key={note?.path ?? "seed"} note={note} />
       </main>
     </div>
   );
