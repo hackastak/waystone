@@ -15,7 +15,7 @@
 //! writes to your files. Notes that lack an `id` in frontmatter get an
 //! ephemeral nanoid for this build of the index. Persisting ids back into files
 //! (`id` write-back on import) is a later, deliberate step, kept separate so
-//! pointing FlintBrain at a folder can never mutate it by surprise.
+//! pointing Waystone at a folder can never mutate it by surprise.
 
 use std::collections::HashMap;
 use std::fs;
@@ -88,11 +88,11 @@ pub fn open(vault: &Path) -> Result<Connection, String> {
     Ok(conn)
 }
 
-/// `~/Library/Application Support/FlintBrain/<vault-key>/index.db` (per OS).
+/// `~/Library/Application Support/Waystone/<vault-key>/index.db` (per OS).
 /// The dir is created if missing.
 pub fn index_path(vault: &Path) -> Result<PathBuf, String> {
     let base = dirs::data_dir().ok_or("could not locate the OS data directory")?;
-    let dir = base.join("FlintBrain").join(vault_key(vault));
+    let dir = base.join("Waystone").join(vault_key(vault));
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join("index.db"))
 }
@@ -298,7 +298,7 @@ fn is_markdown(path: &Path) -> bool {
 }
 
 /// Skip dotfiles/dotfolders anywhere in the path under the vault (e.g. `.git`,
-/// a future `.flintbrain/`).
+/// a future `.waystone/`).
 fn is_hidden(path: &Path, vault: &Path) -> bool {
     path.strip_prefix(vault)
         .unwrap_or(path)

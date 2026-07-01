@@ -1,4 +1,4 @@
-// FlintBrain desktop — Tauri v2 backend.
+// Waystone desktop — Tauri v2 backend.
 //
 // Phase 0 (Spike B) proved the JS ↔ Rust ↔ SQLite(FTS5) seam against an
 // in-memory seed. Phase 1 makes it real: `open_vault` builds a disposable

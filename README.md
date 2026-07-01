@@ -1,10 +1,10 @@
-# FlintBrain — desktop skeleton (Spike B)
+# Waystone — desktop skeleton (Spike B)
 
-Proof-of-architecture for FlintBrain: **Tauri v2 + Vite/React + Milkdown**, with a
+Proof-of-architecture for Waystone: **Tauri v2 + Vite/React + Milkdown**, with a
 single Rust command hitting **SQLite FTS5**. It exists to validate the riskiest
 integration before building for real — the JS ↔ Rust ↔ SQLite round-trip.
 
-See the full plan in `~/Developer/My_Notes/1. Projects/FlintBrain/Migration_Plan.md`.
+See the full plan in `~/Developer/My_Notes/1. Projects/Waystone/Migration_Plan.md`.
 
 ## The architecture this proves (the renderer ↔ Rust split)
 
@@ -58,4 +58,4 @@ src/App.tsx              renderer: Milkdown editor + FTS5 search UI
 src-tauri/src/lib.rs     Rust: Db state + search_notes command (FTS5)
 src-tauri/Cargo.toml     adds rusqlite (bundled)
 ```
-# flintbrain
+# waystone

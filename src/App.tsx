@@ -24,7 +24,7 @@ type NoteContents = {
 };
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-const SEED_DOC = `# Welcome to FlintBrain
+const SEED_DOC = `# Welcome to Waystone
 
 Choose a vault folder, search on the left, then **click a result** to open it
 here and start editing. Edits save back to the \`.md\` file automatically.
@@ -152,7 +152,7 @@ function App() {
   // Prove the Rust file-I/O round-trip: write a .md into the vault, read it back.
   async function testFileIO() {
     if (!vault) return;
-    const path = `${vault}/flintbrain-test.md`;
+    const path = `${vault}/waystone-test.md`;
     const contents = "# Test note\n\nWritten by Rust via `invoke`. If you can read this, file I/O works.\n";
     try {
       await invoke("write_note", { path, contents });
@@ -191,7 +191,7 @@ function App() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <h1>FlintBrain</h1>
+        <h1>Waystone</h1>
         <p className="tag">Tauri v2 · Rust · SQLite FTS5 · Milkdown</p>
 
         <button className="vault-btn" onClick={chooseVault}>

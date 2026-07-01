@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    flintbrain_desktop_lib::run()
+    waystone_desktop_lib::run()
 }
